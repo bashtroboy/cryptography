@@ -6,25 +6,44 @@
 | 21    | TCP  | FTP      | vsftpd 3.0.3  | Anonymous login |
 | 22    | TCP  | ssh      | | |
 | 23    | TCP  | telnet   | Linux telnetd | Guess root login |
-| 80    | TCP  | http     | nginx 1.14.2  | gobuster |
-| 80    | TCP  | http     | freepbx 16.0.40.7 | CVE-2025-57819 |
+| 80    | TCP  | http     | See table below  | Many |
 | 135   | TCP  | msrpc    | MS Remote Procedure Call | |
 | 443   | TCP  | https    | 
 | 445   | TCP  | SMB      | Server Message Block, microsoft-ds? | smbclient, misconfig'd user, metasploit |
 | 873   | TCP  | rsync    | (protocol version 31) | misconfig'd anonymous |
 | 27017 | TCP  | mongodb  | MongoDB 3.6.8 | mongosh |
+| 3306  | TCP  | mysql?   | |
 | 3389  | TCP  | ms-wbt-server | Microsoft Terminal Services | xfreerdp |
 | 6379  | TCP  | redis    | Redis key-value store 5.0.7 | 
 
 A useful tool for understanding more about each port is the speedguide website.
 `https://www.speedguide.net/port.php?port={port}`
 
+## Port 80 frameworks
+
+| Framework | Version | Tools/exploits |
+| --------- | ------- | -------------- |
+| nginx | 1.14.2 | gobuster |
+| freepbx | 16.0.40.7 | CVE-2025-57819 |
+| s3 | <all> | aws cli |
 <br>
 
 # Useful BASH commands
 ## nmap Network Mapping
 ### Scan open ports for service and version info
-`$ sudo nmap -sV {target_ip}`
+`$ sudo nmap -sV -sC {target_ip}`
+
+### Add tp /etc/hosts file
+`echo "{target_ip} subdomain.domain.com" | sudo tee -a /etc/hosts`
+
+### Find local machine's tun0 and IP
+`ifconfig`
+
+### Starting an NCAT listener
+`nc -nvlp 1337`
+
+### Starting a file server from the local directory you want to serve
+`python3 -m http.server 8000`
 
 <br>
 
@@ -116,6 +135,7 @@ dir : specify we are using the directory busting mode of the tool
 -w : specify a wordlist, a collection of common directory names that are typically used 
 for sites
 -u : specify the target's IP address
+-x {filetype} : look for specific file types
 ```
 
 #### Populate a wordlist
@@ -227,9 +247,73 @@ VERIFY_TARGET => true
 [msf](Jobs:0 Agents:0) exploit(windows/smb/ms17_010_eternalblue) >> run
 ```
 
+## [mysql]()
+### Type: Connector
+#### Install mysql command line tools
+`sudo apt update && sudo apt install mysql*`
+
+#### Connect to mysql server
+`mysql -h {target_ip} -u {username}`
+
+#### If getting SSL errors add
+`--ssl-verify-server-cert=FALSE`
+
+#### Useful commands when connected
+```bash 
+MariaDB [htb]> SHOW databases;
+
+MariaDB [htb]> USE {database_name};
+
+MariaDB [htb]> SHOW tables;
+
+MariaDB [htb]> SELECT * FROM {table_name};
+```
+
+## AWS/S3
+### Type: Connector
+#### Indicator
+If you come across additional subdomains or webpages that only load the following, you more than likely are dealing with an AWS S3 bucket for storage.
+`{"status": "running"}`
+
+#### Installing AWS cli tools
+`apt install awscli`
+
+Next is to try arbitrary config settings to gain access.
+
+```bash
+$ aws configure
+AWS Access Key ID [None]: temp
+AWS Secret Access Key [None]: temp
+Default region name [None]: temp
+Default output format [None]: temp
+```
+
+If successful, we can use the following useful commands.
+
+```bash
+# list all available buckets
+aws --endpoint=http://s3.thetoppers.htb s3 ls
+
+# list all objects in a specific bucket
+aws --endpoint=http://s3.thetoppers.htb s3 ls s3://thetoppers.htb
+
+# copy items from home directory to bucket
+aws --endpoint=http://s3.thetoppers.htb s3 cp shell.php s3://thetoppers.htb
+```
+
 <br>
 
 # Sources
 | Name | Decription |
 | ---- | ---------- |
 | [danielmiessler](https://github.com/danielmiessler/SecLists) | Full SecLists collection |
+
+
+# Checklist
+
+- nmap
+ftp anonymous
+- website? what kind
+- find additional pages (gobuster)
+- find additional subdomains
+/etc/hosts file for resolving domains
