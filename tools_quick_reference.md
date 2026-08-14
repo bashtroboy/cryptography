@@ -33,25 +33,34 @@ A useful tool for understanding more about each port is the speedguide website.
 ### Scan open ports for service and version info
 `$ sudo nmap -sV -sC {target_ip}`
 
-### Add tp /etc/hosts file
-`echo "{target_ip} subdomain.domain.com" | sudo tee -a /etc/hosts`
+### Add to /etc/hosts file
+`$ echo "{target_ip} subdomain.domain.com" | sudo tee -a /etc/hosts`
 
 ### Find local machine's tun0 and IP
-`ifconfig`
+`$ ifconfig`
 
 ### Starting an NCAT listener
-`nc -nvlp 1337`
+`$ nc -nvlp 1337`
 
 ### Starting a file server from the local directory you want to serve
-`python3 -m http.server 8000`
+`$ python3 -m http.server 8000`
+
+### Creating a stable shell from a reverse-shell
+`$ script /dev/null -c /bin/bash`
+
+### Fast filesystem search from indexed database
+`$ locate sample.txt`
+
+### View contents of a file
+`$ cat /filepath/filename.txt`
 
 <br>
 
 # Third-party resources and tools
-## [linPeas ](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS)
+## [linPeas](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS)
 ### Type: Escalation
 
-## [nmap ](https://nmap.org/book/man.html)
+## [nmap](https://nmap.org/book/man.html)
 ### Type: Discovery
 
 `$ sudo nmap -sV {target_ip}`
@@ -62,15 +71,20 @@ A useful tool for understanding more about each port is the speedguide website.
 -sV : Attempts to determine the version of the service running on a port
 --min-rate : This is used to specify the minimum number of packets that Nmap should send 
 per second; it speeds up the scan as the number goes higher
+-sC : run useful scripts to retrieve additional information
+--script {script_name} -p {port}: run a specfic script
 ```
 
 ## [smbclient]()
 ### Type: Connector
 #### List all clients
-`$ smbclient -l {target_ip}`
+`$ smbclient -L {target_ip}`
 
 #### Connect to a client
 `$ smbclient \\\\{target_ip}\\{shareName}`
+
+#### Force a specific version
+`--option='client min protocol=NT1'`
 
 ```bash
 ls : listing contents of the directories within the share
@@ -136,14 +150,19 @@ dir : specify we are using the directory busting mode of the tool
 for sites
 -u : specify the target's IP address
 -x {filetype} : look for specific file types
+-b 302,404 : exclude certain web codes
+vhost : Uses VHOST for brute-forcing
 ```
 
 #### Populate a wordlist
 `$ wget https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/common.txt -O /usr/share/wordlists/common.txt`
 
 
-#### Running gobuster
+#### Running gobuster looking for directories
 `$ sudo gobuster dir -w /usr/share/wordlists/common.txt -u {target_IP}`
+
+#### Running gobuster looking for subdomains
+`gobuster vhost -w /opt/useful/seclists/Discovery/DNS/subdomains-top1million-5000.txt -u http://thetoppers.htb`
 
 
 ## [mongosh](https://www.mongodb.com/try/download/shell)
@@ -269,7 +288,7 @@ MariaDB [htb]> SHOW tables;
 MariaDB [htb]> SELECT * FROM {table_name};
 ```
 
-## AWS/S3
+## [AWS/S3]()
 ### Type: Connector
 #### Indicator
 If you come across additional subdomains or webpages that only load the following, you more than likely are dealing with an AWS S3 bucket for storage.
@@ -300,6 +319,77 @@ aws --endpoint=http://s3.thetoppers.htb s3 ls s3://thetoppers.htb
 # copy items from home directory to bucket
 aws --endpoint=http://s3.thetoppers.htb s3 cp shell.php s3://thetoppers.htb
 ```
+
+## [Vim](https://vimsheet.com/)
+### Type: Text Editor
+#### Starting Vim
+Existing file
+`$ vim /etc/hosts`
+
+New file
+`$ vim /path/newfile.txt`
+
+#### Modes
+```bash
+# Insert mode
+i
+
+# normal mode
+esc
+
+# command mode
+:
+```
+
+#### Normal mode commands
+| Command | Description |
+| ------- | ----------- |
+| x | Cut character |
+| dw | Cut word |
+| dd | Cut full line |
+| yw | Copy word |
+| yy | Copy full line |
+| p | paste |
+
+#### Command mode commands
+| Command | Description |
+| ------- | ----------- |
+| :1 | Go to line number 1 |
+| :w | Write the file, save |
+| :q | Quit |
+| :q! | Quit without saving |
+| :wq | Write and quit |
+
+## [FTP]()
+### Type: Connector
+### Useful commands
+
+```bash
+# Connect to a remote machine via ftp
+$ ftp 10.129.10.10
+# or
+$ ftp username@10.129.10.10
+
+# Download a file
+ftp> get filename.txt
+
+# Exit FTP session
+ftp> exit
+```
+
+## [SNMP]()
+### Type: Discovery
+#### Initializing
+`$ snmpwalk -v 2c -c public 10.129.10.10`
+
+## [Hydra]()
+### Type: Password Sprayer
+#### Installing Hydra
+`$ sudo apt-get install hydra`
+
+#### Running Hydra
+After compiling a file of all usernames to try, without domains, use the following to test a password on each.
+`$ hydra -L usernames.txt -p 'funnel123#!#' {target_IP} ssh`
 
 <br>
 
