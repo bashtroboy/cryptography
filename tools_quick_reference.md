@@ -1,9 +1,37 @@
+# Table of Contents
+* [Ports](#ports)
+   * [Port 80 Frameworks](#port-80-frameworks)
+* [Useful Bash Commands](#useful-bash-commands)
+* [Tools](#tools-and-resources)
+   * [linPeas](#linpeas)
+   * [nmap](#nmap)
+   * [smbclient](#smbclient)
+   * [redis-cli](#redis-cli)
+   * [xfreeRDP](#xfreerdp)
+   * [gobuster](#gobuster)
+   * [mongoSH](#mongosh)
+   * [rsync](#rsync)
+   * [metasploit](#metasploit)
+   * [mySQL](#mysql)
+   * [AWS/S3](#awss3)
+   * [Vim](#vim)
+   * [FTP](#ftp)
+   * [SNMP](#snmp)
+   * [Hydra](#hydra)
+   * [grep](#grep)
+   * [psexec](#psexec)
+   * [NetCat/ncat](#netcatncat)
+* [Resources](#resources)
+* [Data Sources](#data-sources)
+* [Checklist](#checklist)
+* [Useful Info](#useful-info)
+
 
 # Ports
 
 |   #   | Type | Name     | Notes         | Exploits      |
 | ----- | ---- | -------- | ------------- | ------------- |
-| 21    | TCP  | FTP      | vsftpd 3.0.3  | Anonymous login |
+| [21](https://www.speedguide.net/port.php?port=21)    | TCP  | FTP      | vsftpd 3.0.3  | Anonymous login |
 | 22    | TCP  | ssh      | | |
 | 23    | TCP  | telnet   | Linux telnetd | Guess root login |
 | 80    | TCP  | http     | See table below  | Many |
@@ -12,9 +40,10 @@
 | 445   | TCP  | SMB      | Server Message Block, microsoft-ds? | smbclient, misconfig'd user, metasploit |
 | 873   | TCP  | rsync    | (protocol version 31) | misconfig'd anonymous |
 | 27017 | TCP  | mongodb  | MongoDB 3.6.8 | mongosh |
-| 3306  | TCP  | mysql?   | |
+| 3306  | TCP  | mysql?   | | |
 | 3389  | TCP  | ms-wbt-server | Microsoft Terminal Services | xfreerdp |
 | 6379  | TCP  | redis    | Redis key-value store 5.0.7 | 
+| 8080  | TCP  | jenkins  | | |
 
 A useful tool for understanding more about each port is the speedguide website.
 `https://www.speedguide.net/port.php?port={port}`
@@ -29,7 +58,9 @@ A useful tool for understanding more about each port is the speedguide website.
 <br>
 
 # Useful BASH commands
-## nmap Network Mapping
+### Retrieve a webpage
+`$ curl -i http://10.10.110.100:65000/`
+
 ### Scan open ports for service and version info
 `$ sudo nmap -sV -sC {target_ip}`
 
@@ -54,9 +85,27 @@ A useful tool for understanding more about each port is the speedguide website.
 ### View contents of a file
 `$ cat /filepath/filename.txt`
 
+### Download a file
+`$ get /fielpath/filename.txt`
+
+### Find files
+```bash
+// . determines search from current directory
+$ find . -name "filename.txt"
+
+// / lets you search from root
+$ find / -name "filename.txt"
+
+// Add wildcards to name pattern with *
+$ find / -name "*name*"
+```
+
+### Find printable strings in non-text files
+`$ strings /path/to/file`
+
 <br>
 
-# Third-party resources and tools
+# Tools and resources
 ## [linPeas](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS)
 ### Type: Escalation
 
@@ -73,7 +122,28 @@ A useful tool for understanding more about each port is the speedguide website.
 per second; it speeds up the scan as the number goes higher
 -sC : run useful scripts to retrieve additional information
 --script {script_name} -p {port}: run a specfic script
+-Pn : skip discovery phase that may trigger detection, treat all ports as open
+-T4, -T5 : speed controls
+--min-rate : 
+--max-retries :
 ```
+
+Scan top UDP ports
+`$ sudo nmap -sU --top-ports 20 10.10.110.2`
+
+Scan UDP with version info (when previous gives you open|filtered results)
+`$ sudo nmap -sU -sV --top-ports 20 10.10.110.2`
+
+Perform a ping sweep for discovery of alive hosts on the subnet that respond to discovery probes
+`$ nmap -sn 10.10.110.0/24`
+
+Port scan across a subnet (great for on a firewall)
+`$ sudo nmap -Pn -T4 --min-rate 1000 --top-ports 100 10.10.110.0/24`
+
+Deep scan on a host
+`$ sudo nmap -Pn -p- -sV -T4 10.10.110.100`
+
+Tip: To see progress, press the `Space` bar
 
 ## [smbclient]()
 ### Type: Connector
@@ -85,6 +155,9 @@ per second; it speeds up the scan as the number goes higher
 
 #### Force a specific version
 `--option='client min protocol=NT1'`
+
+#### Specify a user to login
+`-U {username}`
 
 ```bash
 ls : listing contents of the directories within the share
@@ -148,10 +221,12 @@ $ go install
 dir : specify we are using the directory busting mode of the tool
 -w : specify a wordlist, a collection of common directory names that are typically used 
 for sites
--u : specify the target's IP address
+-u : specify the targets IP address
 -x {filetype} : look for specific file types
 -b 302,404 : exclude certain web codes
 vhost : Uses VHOST for brute-forcing
+-x php,html,txt : also test each word with those extensions, so you catch files like login.php or backup.txt, not just bare directories
+-t 50 : (threads) if it feels slow, though don't crank it too high against a lab box.
 ```
 
 #### Populate a wordlist
@@ -159,11 +234,24 @@ vhost : Uses VHOST for brute-forcing
 
 
 #### Running gobuster looking for directories
-`$ sudo gobuster dir -w /usr/share/wordlists/common.txt -u {target_IP}`
+`$ sudo gobuster dir -w /usr/share/wordlists/common.txt -u http://{target_IP}`
+
+#### In parrot.os
+`$ sudo gobuster dir -w /usr/share/seclists/Discovery/Web-Content/common.txt -u http://{target_ip}`
 
 #### Running gobuster looking for subdomains
 `gobuster vhost -w /opt/useful/seclists/Discovery/DNS/subdomains-top1million-5000.txt -u http://thetoppers.htb`
 
+
+#### Other useful files
+```
+# Directories
+DirBuster-2007_directory-list-2.3-big.txt
+
+# Subdomains
+subdomains-top1million-110000.txt
+subdomains-top1million-20000.txt
+```
 
 ## [mongosh](https://www.mongodb.com/try/download/shell)
 ### Type: Mongo DB Shell
@@ -391,19 +479,86 @@ ftp> exit
 After compiling a file of all usernames to try, without domains, use the following to test a password on each.
 `$ hydra -L usernames.txt -p 'funnel123#!#' {target_IP} ssh`
 
+## [grep]()
+### Type: Search
+#### Search for a pattern in specific files
+`$ grep -i 'hello world' menu.h main.c`
+
+#### Useful flags
+```bash
+-i : ignore case
+-v : invert match, show results where no match is found
+```
+
+## [psexec](https://github.com/SecureAuthCorp/impacket)
+### Type: Shell
+#### Installation
+```bash
+$ git clone https://github.com/SecureAuthCorp/impacket.git
+$ cd impacket
+$ pip3 install .
+# OR:
+$ sudo python3 setup.py installbash
+```
+
+#### Usage
+`$ python psexec.py username:password@hostIP // with authentication`
+
+`$ psexec.py username@hostIP // without password`
+
+## [Netcat/NCAT](https://nmap.org/ncat/guide/index.html)
+### Type: Connector
+#### Usage
+
+Target a specific port
+`$ nc -v 10.10.110.2 4000`
+
 <br>
 
-# Sources
+# Resources
+
+| Resource | Notes |
+| -------- | ----- |
+| [Reverse shell cheatsheet](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Reverse%20Shell%20Cheatsheet.md) | Shows reverse shell methods by product/platform |
+| [Hacktricks](https://hacktricks.wiki/en/index.html) | Pentest wiki |
+| [stmcyber](https://blog.stmcyber.com/) | Blog |
+| [Server Side Template Injection](https://hacktricks.wiki/en/pentesting-web/ssti-server-side-template-injection/index.html) | SSTI Overview |
+
+<br>
+
+# Data Sources
 | Name | Decription |
 | ---- | ---------- |
 | [danielmiessler](https://github.com/danielmiessler/SecLists) | Full SecLists collection |
 
+<br>
+
 
 # Checklist
 
-- nmap
+Process
+1. Find the host
+2. Enumerate the host
+
+- Host discovery
+- Port scan (nmap)
 ftp anonymous
 - website? what kind
 - find additional pages (gobuster)
 - find additional subdomains
 /etc/hosts file for resolving domains
+
+
+# Useful Info
+## Common Password Combos
+| user:password |
+| --------- |
+| admin:password |
+| admin:admin |
+| root:root |
+| root:password |
+| admin:admin1 |
+| admin:password1 |
+| root:password1 |
+| admin:admin123 |
+| admin: |
